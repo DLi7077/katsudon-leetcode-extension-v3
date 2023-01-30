@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "Katsudon LC Network Capture",
+  "version": "1.0",
+  "description": "Webscraper to send leetcode submissions to Katsudon DB",
+  "content_scripts": [
+    {
+      "run_at": "document_start",
+      "js": ["scripts/capture.js"],
+      "matches": ["https://leetcode.com/problems/*"]
+    }
+  ]
+}
