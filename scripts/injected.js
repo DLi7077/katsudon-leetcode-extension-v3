@@ -3,8 +3,9 @@
 
 // Since the submission details are in fetch requests, intercept fetches instead.
 
-// Global variable - only one solution per page, updates on submission create.
-let solutionCode;
+// Global variables:
+let solutionCode; // updates on submission create
+let problemDetails; // updates on page load
 
 const Utils = {
   isCreateSolutionRequest: (fetchUrl) => {
@@ -23,6 +24,9 @@ const Utils = {
   toMegabytes: (bytes) => {
     const MB = 1000000;
     return bytes / MB;
+  },
+  isGraphQLUrl: (XHRUrl) => {
+    return XHRUrl === "https://leetcode.com/graphql/";
   },
 };
 
@@ -80,8 +84,8 @@ function handleInterceptError(error) {
   console.error(error);
 }
 
-// override fetch
-// source : https://blog.logrocket.com/intercepting-javascript-fetch-api-requests-responses/
+// Override fetch to intercept submission details
+// Source: https://blog.logrocket.com/intercepting-javascript-fetch-api-requests-responses/
 const { fetch: originalFetch } = window;
 
 window.fetch = async (...args) => {
@@ -101,4 +105,37 @@ window.fetch = async (...args) => {
     .catch(handleInterceptError);
 
   return interceptedResponse;
+};
+
+// Override XHR to intercept problem details
+// Source: https://stackoverflow.com/a/67390377
+const XHR = XMLHttpRequest.prototype;
+
+// idk whats going on here
+const { open, send, setRequestHeader } = XHR;
+XHR.open = function () {
+  this._requestHeaders = {};
+
+  return open.apply(this, arguments);
+};
+XHR.setRequestHeader = function (header, value) {
+  this._requestHeaders[header] = value;
+  return setRequestHeader.apply(this, arguments);
+};
+
+XHR.send = function () {
+  this.addEventListener("load", async function () {
+    const { responseURL, response } = this;
+    // one of the graphQL requests contain the problem description
+    if (Utils.isGraphQLUrl(responseURL)) {
+      // response should be a Blob
+      // https://developer.mozilla.org/en-US/docs/Web/API/Blob/text
+      const responseJSON = await response
+        .text()
+        .then((text) => JSON.parse(text));
+      console.log(responseJSON);
+    }
+  });
+
+  return send.apply(this, arguments);
 };
