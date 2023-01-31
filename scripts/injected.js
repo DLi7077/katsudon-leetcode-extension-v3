@@ -1,58 +1,37 @@
-// You CANNOT use `browser`/`chrome` here and you CANNOT interact with extension stuff like storage and tabs.
+// Original inspiration: override browser's XHR function
+// Source : https://stackoverflow.com/a/67390377
 
-const XHR = XMLHttpRequest.prototype;
+// Since the submission details are in fetch requests, intercept fetches instead.
 
-const open = XHR.open;
-const send = XHR.send;
-const setRequestHeader = XHR.setRequestHeader;
+// parse the response and create a document for katsudon
+async function parseLeetcodeFetchResponse(response) {
+  console.log(response);
+}
 
-XHR.open = function () {
-  this._requestHeaders = {};
+// description Intercepts the fetch request response, and returns the original response
+async function handleInterceptResponse(response) {
+  await response
+    .clone()
+    .json()
+    .then(parseLeetcodeFetchResponse)
+    .catch(console.error);
 
-  return open.apply(this, arguments);
-};
+  return response;
+}
 
-XHR.setRequestHeader = function (header, value) {
-  this._requestHeaders[header] = value;
-  return setRequestHeader.apply(this, arguments);
-};
+function handleInterceptError(error) {
+  console.log(error);
+}
 
 // override fetch
+// source : https://blog.logrocket.com/intercepting-javascript-fetch-api-requests-responses/
 const { fetch: originalFetch } = window;
 window.fetch = async (...args) => {
   const [resource, config] = args;
 
-  // request interceptor ends
-  const response = await originalFetch(resource, config).then(async (res) => {
-    // const body = res.body;
-    // console.log(body.toString("utf8"));
-    const x = res.clone();
-    await x
-      .json()
-      .then((data) => {
-        console.log(data);
-      })
-      .catch(console.error);
+  const interceptedResponse = await originalFetch(resource, config)
+    .then(handleInterceptResponse)
+    .catch(handleInterceptError);
 
-    return res;
-  });
-
-  // response interceptor here
-  return response;
-};
-
-XHR.send = function () {
-  this.addEventListener("load", function () {
-    (function (ns, fetch) {
-      if (typeof fetch !== "function") return;
-
-      ns.fetch = function (url) {
-        const out = fetch.apply(this, arguments);
-
-        return out;
-      };
-    })(window, window.fetch);
-  });
-
-  return send.apply(this, arguments);
+  return interceptedResponse;
 };
