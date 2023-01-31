@@ -1,13 +1,20 @@
 {
   "manifest_version": 3,
-  "name": "Katsudon LC Network Capture",
+  "name": "Katsudon Leetcode Extension v3",
   "version": "1.0",
   "description": "Webscraper to send leetcode submissions to Katsudon DB",
   "content_scripts": [
     {
+      "world": "MAIN",
       "run_at": "document_start",
       "js": ["scripts/capture.js"],
       "matches": ["https://leetcode.com/problems/*"]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["scripts/injected.js"],
+      "matches": ["<all_urls>"]
     }
   ]
 }
